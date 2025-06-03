@@ -94,10 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
     } catch (e) {
-      setState() {
+      setState(() {
         errorMessage = 'Failed to load movies: $e';
         isLoading = false;
-      };
+      });
     }
   }
 

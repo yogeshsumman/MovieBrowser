@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controller/movie_controller.dart' as movie_controller;
 import '../../data/model/movie.dart';
-import '../../theme/theme.dart';
+// import '../../theme/theme.dart';
 
 // Purpose: Displays detailed information about a selected movie, including poster,
 // title, genre, year, plot, release date, and IMDb rating. Fetches data using
