@@ -1,45 +1,59 @@
+// movie_repository.dart
+
 import '../model/movie.dart';
+import '../model/search_response.dart';
 import '../services/api_service.dart';
 
-// Purpose: Acts as a repository layer to handle data operations for the movie
-// browsing app, interfacing with ApiService to fetch movies, movie details, and
-// genres. Uses a static genre list for filtering, as OMDB API lacks a genre endpoint.
 class MovieRepository {
   final ApiService _apiService;
 
   MovieRepository(this._apiService);
 
-  // Fetches popular movies by searching a default query
-  Future<List<Movie>> fetchPopularMovies(int page) async {
+  Future<SearchResponse> fetchPopularMovies(int page) async {
     try {
-      final movies = await _apiService.searchMovies('movie', page);
-      return movies;
+      final response = await _apiService.searchMovies('movie', page);
+      return response;
     } catch (e) {
       throw Exception('Failed to fetch popular movies: $e');
     }
   }
 
-  // Searches movies by query
-  Future<List<Movie>> searchMovies(String query, int page) async {
-    try {
-      final movies = await _apiService.searchMovies(query, page);
-      return movies;
-    } catch (e) {
-      throw Exception('Failed to search movies: $e');
-    }
+  Future<SearchResponse> searchMovies(String query, int page) async {
+    return await _apiService.searchMovies(query, page);
   }
 
-  // Fetches details for a specific movie by IMDb ID
+  Future<SearchResponse> fetchMovies(int page) async {
+    return await _apiService.fetchMovies(page);
+  }
+
   Future<Movie> fetchMovieDetails(String imdbId) async {
     try {
-      final movie = await _apiService.fetchMovieDetails(imdbId);
+      final movie = await _apiService.getMovieDetails(imdbId);
       return movie;
     } catch (e) {
       throw Exception('Failed to fetch movie details: $e');
     }
   }
 
-  // Returns a list of genres for filtering
+  Future<List<Movie>> fetchMoviesWithDetails(List<Movie> movies) async {
+    try {
+      final detailedMovies = await Future.wait(
+        movies.map((movie) async {
+          final detailedMovie = await _apiService.getMovieDetails(movie.imdbId);
+          
+          // 🐛 DEBUG: Print each movie’s title and genre
+          print('Fetched: ${detailedMovie.title}, Genre: ${detailedMovie.genre}');
+          
+          return detailedMovie;
+        }),
+      );
+      return detailedMovies;
+    } catch (e) {
+      print('Error fetching detailed movies: $e'); // 🐛 DEBUG: Log full error
+      throw Exception('Failed to fetch movie details: $e');
+    }
+  }
+
   Future<List<String>> getGenres() async {
     try {
       return [

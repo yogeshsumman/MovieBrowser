@@ -1,3 +1,4 @@
+//movie_card.dart
 import 'package:flutter/material.dart';
 import '../../data/model/movie.dart';
 
@@ -17,6 +18,7 @@ class MovieCard extends StatelessWidget {
       onTap: onPressed,
       child: Card(
         elevation: 4.0,
+        clipBehavior: Clip.antiAlias, // <-- Add this line
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

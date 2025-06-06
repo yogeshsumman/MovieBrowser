@@ -1,3 +1,5 @@
+//general_dropdown.dart
+
 import 'package:flutter/material.dart';
 
 // Purpose: Provides a reusable dropdown widget for selecting a genre to filter

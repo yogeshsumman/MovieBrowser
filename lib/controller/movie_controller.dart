@@ -1,85 +1,87 @@
 import 'package:flutter/material.dart';
 import '../data/model/movie.dart';
+import '../data/model/search_response.dart';
 import '../data/repositories/movie_repository.dart';
 
-// Purpose: Manages movie data fetching and filtering for the app. Interfaces with
-// MovieRepository to fetch movies, genres, and details, and provides filtering
-// logic for genres. Manages UI controllers for search and scrolling.
 class MovieController {
-  final MovieRepository _repository;
-  final TextEditingController searchController = TextEditingController();
+  final MovieRepository repository;
   final ScrollController scrollController = ScrollController();
+  final TextEditingController searchController = TextEditingController();
 
-  MovieController(this._repository);
+  MovieController(this.repository);
 
-  // Fetches popular movies
-  Future<List<Movie>> fetchPopularMovies(int page) async {
-    try {
-      final movies = await _repository.fetchPopularMovies(page);
-      return await _fetchMoviesWithGenres(movies);
-    } catch (e) {
-      throw Exception('Failed to load popular movies: $e');
-    }
-  }
-
-  // Searches movies by query
-  Future<List<Movie>> searchMovies(String query, int page) async {
-    try {
-      final movies = await _repository.searchMovies(query, page);
-      return await _fetchMoviesWithGenres(movies);
-    } catch (e) {
-      throw Exception('Failed to search movies: $e');
-    }
-  }
-
-  // Fetches genres
   Future<List<String>> fetchGenres() async {
-    try {
-      return await _repository.getGenres();
-    } catch (e) {
-      throw Exception('Failed to load genres: $e');
-    }
+    return await repository.getGenres();
   }
 
-  // Fetches movie details to get genres
-  Future<List<Movie>> _fetchMoviesWithGenres(List<Movie> movies) async {
-    final List<Movie> detailedMovies = [];
-    for (var movie in movies) {
-      try {
-        final detailedMovie = await _repository.fetchMovieDetails(movie.imdbId);
-        detailedMovies.add(detailedMovie);
-      } catch (e) {
-        // Skip movies with failed details fetch
-        print('Failed to fetch details for ${movie.title}: $e');
-      }
-    }
-    return detailedMovies;
+  Future<SearchResponse> searchMovies(String query, int page) async {
+    return await repository.searchMovies(query, page);
   }
 
-  // Filters movies by genre, case-insensitive
-  List<Movie> filterByGenre(List<Movie> movies, String? genre) {
-    if (genre == null || genre.isEmpty) return movies;
-    return movies.where((movie) {
-      if (movie.genre.isEmpty) return false;
-      final movieGenres = movie.genre
-          .split(', ')
-          .map((g) => g.trim().toLowerCase())
+  Future<SearchResponse> fetchMovies(int page) async {
+    return await repository.fetchMovies(page);
+  }
+
+  Future<Movie> getMovieDetails(String imdbId) async {
+    return await repository.fetchMovieDetails(imdbId);
+  }
+
+  // 🔧 Genre filtering with normalization applied
+  Future<List<Movie>> filterByGenre(List<Movie> movies, String? genre) async {
+    if (genre == null) {
+      return movies; // No filtering if no genre is selected
+    }
+
+    final detailedMovies = await repository.fetchMoviesWithDetails(movies);
+
+    final targetGenre = _normalizeGenre(genre);
+
+    return detailedMovies.where((movie) {
+      final movieGenre = movie.genre?.toLowerCase() ?? '';
+      final genreList = movieGenre
+          .split(',')
+          .map((g) => _normalizeGenre(g.trim()))
           .toList();
-      return movieGenres.contains(genre.toLowerCase());
+
+      return genreList.contains(targetGenre);
     }).toList();
   }
 
-  // Fetches movie details by IMDb ID
-  Future<Movie> fetchMovieDetails(String imdbId) async {
-    try {
-      return await _repository.fetchMovieDetails(imdbId);
-    } catch (e) {
-      throw Exception('Failed to load movie details: $e');
-    }
+  //Genre normalization mapping
+  String _normalizeGenre(String genre) {
+    final map = {
+      'science fiction': 'sci-fi',
+      'sci fi': 'sci-fi',
+      'scifi': 'sci-fi',
+      'romantic comedy': 'romance',
+      'romance comedy': 'romance',
+      'rom com': 'romance',
+      'historical': 'history',
+      'action-adventure': 'action',
+      'action & adventure': 'action',
+      'adventure-action': 'adventure',
+      'comedy-drama': 'comedy',
+      'dramedy': 'drama',
+      'drama-comedy': 'drama',
+      'thriller-mystery': 'thriller',
+      'mystery-thriller': 'mystery',
+      'crime-drama': 'crime',
+      'drama-crime': 'drama',
+      'fantasy-adventure': 'fantasy',
+      'horror-thriller': 'horror',
+      'biographical': 'biography',
+      'bio': 'biography',
+      'musical': 'music',
+      'war-drama': 'war',
+      'western-comedy': 'western',
+      'family-adventure': 'family',
+      'animated': 'animation',
+    };
+    return map[genre.toLowerCase()] ?? genre.toLowerCase();
   }
 
   void dispose() {
-    searchController.dispose();
     scrollController.dispose();
+    searchController.dispose();
   }
 }

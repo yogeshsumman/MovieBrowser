@@ -1,53 +1,54 @@
-// import 'dart:convert';
+import 'package:json_annotation/json_annotation.dart';
 
+part 'movie.g.dart';
+
+@JsonSerializable()
 class Movie {
+  @JsonKey(name: 'imdbID')
   final String imdbId;
+
+  @JsonKey(name: 'Title')
   final String title;
+
+  @JsonKey(name: 'Year')
   final String year;
-  final String released;
-  final String plot;
-  final String genre;
+
+  @JsonKey(name: 'Poster')
   final String poster;
-  final String imdbRating;
+
+  @JsonKey(name: 'Type')
+  final String type;
+
+  // Add these fields for details
+  @JsonKey(name: 'Genre')
+  final String? genre;
+
+  @JsonKey(name: 'Director')
+  final String? director;
+
+  @JsonKey(name: 'Actors')
+  final String? actors;
+
+  @JsonKey(name: 'Plot')
+  final String? plot;
+
+  @JsonKey(name: 'imdbRating')
+  final String? imdbRating;
 
   Movie({
-  required this.imdbId,
-  required this.title,
-  required this.year,
-  required this.released,
-  required this.plot,
-  required this.genre,
-  required this.poster,
-  required this.imdbRating,
-});
+    required this.imdbId,
+    required this.title,
+    required this.year,
+    required this.poster,
+    required this.type,
+    this.genre,
+    this.director,
+    this.actors,
+    this.plot,
+    this.imdbRating,
+  });
 
+  factory Movie.fromJson(Map<String, dynamic> json) => _$MovieFromJson(json);
 
- factory Movie.fromJson(Map<String, dynamic> json) {
-    return Movie(
-      imdbId: json['imdbID'] ?? '',
-      title: json['Title'] ?? '',
-      year: json['Year'] ?? '',
-      released: json['Released'] ?? '',
-      plot: json['Plot'] ?? '',
-      genre: json['Genre'] ?? '',
-      poster: json['Poster'] ?? '',
-      imdbRating: json['imdbRating'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'imdbID': imdbId,
-      'Title': title,
-      'Year': year,
-      'Released': released,
-      'Plot': plot,
-      'Genre': genre,
-      'Poster': poster,
-      'imdbRating': imdbRating,
-    };
-  }
+  Map<String, dynamic> toJson() => _$MovieToJson(this);
 }
-
-
-

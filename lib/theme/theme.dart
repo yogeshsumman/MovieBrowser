@@ -8,7 +8,7 @@ class AppTheme {
 
   static ThemeData get lightTheme {
     return ThemeData(
-      primarySwatch: Colors.blue,
+      primarySwatch: Colors.deepPurple,
       scaffoldBackgroundColor: backgroundColor,
       textTheme: const TextTheme(
         displayLarge: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: textColor),
@@ -18,11 +18,14 @@ class AppTheme {
       ),
       cardTheme: const CardTheme(
         elevation: 4.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8.0))),
+        margin: EdgeInsets.all(8.0), // Add this line for consistent spacing
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8.0)),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         elevation: 4.0,
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.deepPurple,
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 20.0, fontWeight: FontWeight.bold),
       ),
       inputDecorationTheme: const InputDecorationTheme(

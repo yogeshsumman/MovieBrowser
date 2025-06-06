@@ -1,3 +1,5 @@
+//app.dart
+
 import 'package:flutter/material.dart';
 import './controller/movie_controller.dart' as movie_controller; // Alias to avoid conflict
 import 'data/repositories/movie_repository.dart';

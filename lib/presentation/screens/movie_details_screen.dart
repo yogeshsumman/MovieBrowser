@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../controller/movie_controller.dart' as movie_controller;
+import '../../controller/movie_controller.dart';
 import '../../data/model/movie.dart';
-// import '../../theme/theme.dart';
 
-// Purpose: Displays detailed information about a selected movie, including poster,
-// title, genre, year, plot, release date, and IMDb rating. Fetches data using
-// MovieController and applies styles from theme.dart for consistency.
 class MovieDetailsScreen extends StatefulWidget {
   final String imdbId;
-  final movie_controller.MovieController controller;
+  final MovieController controller;
 
   const MovieDetailsScreen({
     Key? key,
@@ -21,136 +17,181 @@ class MovieDetailsScreen extends StatefulWidget {
 }
 
 class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
-  late Future<Movie> _movieFuture;
+  Movie? movieDetails;
+  bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _movieFuture = widget.controller.fetchMovieDetails(widget.imdbId);
+    _fetchMovieDetails();
+  }
+
+  Future<void> _fetchMovieDetails() async {
+    try {
+      final details = await widget.controller.getMovieDetails(widget.imdbId);
+      setState(() {
+        movieDetails = details;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load movie details: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildRatingStars(String? rating) {
+    if (rating == null || rating == 'N/A') {
+      return const Text('IMDb: N/A');
+    }
+
+    final doubleRate = double.tryParse(rating) ?? 0.0;
+    final starCount = (doubleRate / 2).round(); // IMDb is out of 10, we convert to 5
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'IMDb Rating: $rating',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(5, (index) {
+            return Icon(
+              index < starCount ? Icons.star : Icons.star_border,
+              color: Colors.amber,
+              size: 22,
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // Access theme.dart styles
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Movie Details'),
+        title: Text(movieDetails?.title ?? 'Movie Details'),
         centerTitle: true,
-        backgroundColor: theme.colorScheme.primary, // Blue from theme.dart
+        backgroundColor: Colors.deepPurple,
       ),
-      backgroundColor: theme.scaffoldBackgroundColor, // Light grey
-      body: FutureBuilder<Movie>(
-        future: _movieFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
-            );
-          } else if (!snapshot.hasData) {
-            return Center(
-              child: Text(
-                'No movie data found.',
-                style: theme.textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-            );
-          }
-
-          final movie = snapshot.data!;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Movie Poster
-                Center(
-                  child: Card(
-                    elevation: theme.cardTheme.elevation, // From theme.dart
-                    shape: theme.cardTheme.shape, // Rounded corners
-                    child: movie.poster.isNotEmpty && movie.poster != 'N/A'
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.network(
-                              movie.poster,
-                              width: 200,
-                              height: 300,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 200,
-                                height: 300,
-                                color: theme.colorScheme.onSurface.withOpacity(0.1),
-                                child: const Icon(Icons.error, size: 50),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            width: 200,
-                            height: 300,
-                            color: theme.colorScheme.onSurface.withOpacity(0.1),
-                            child: const Icon(Icons.image_not_supported, size: 50),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+              ? Center(child: Text(errorMessage!))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (movieDetails?.poster != null && movieDetails!.poster != 'N/A')
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            movieDetails!.poster,
+                            height: 320,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.error, size: 80),
                           ),
+                        ),
+                      const SizedBox(height: 24),
+
+                      // Title
+                      Text(
+                        movieDetails?.title ?? 'No Title',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // IMDb Rating
+                      if (movieDetails?.imdbRating != null)
+                        _buildRatingStars(movieDetails?.imdbRating),
+                      const SizedBox(height: 24),
+
+                      // Info Card
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInfoRow('Year', movieDetails?.year ?? 'N/A'),
+                              const Divider(),
+                              _buildInfoRow('Genre', movieDetails?.genre ?? 'N/A'),
+                              const Divider(),
+                              _buildInfoRow('Director', movieDetails?.director ?? 'N/A'),
+                              const Divider(),
+                              _buildInfoRow('Actors', movieDetails?.actors ?? 'N/A'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Plot
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Plot',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            movieDetails?.plot ?? 'N/A',
+                            style: theme.textTheme.bodyLarge,
+                            textAlign: TextAlign.justify,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16.0),
-                // Title
-                Text(
-                  movie.title,
-                  style: theme.textTheme.displayLarge, // Bold, large from theme.dart
-                ),
-                const SizedBox(height: 8.0),
-                // Genre
-                Text(
-                  'Genre: ${movie.genre.isEmpty ? 'N/A' : movie.genre}',
-                  style: theme.textTheme.titleMedium, // Medium title style
-                ),
-                const SizedBox(height: 8.0),
-                // Year
-                Text(
-                  'Year: ${movie.year.isEmpty ? 'N/A' : movie.year}',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8.0),
-                // Release Date
-                Text(
-                  'Released: ${movie.released.isEmpty ? 'N/A' : movie.released}',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8.0),
-                // IMDb Rating
-                Text(
-                  'IMDb Rating: ${movie.imdbRating.isEmpty ? 'N/A' : movie.imdbRating}',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 16.0),
-                // Plot
-                Text(
-                  'Plot',
-                  style: theme.textTheme.titleLarge, // Section header
-                ),
-                const SizedBox(height: 8.0),
-                Card(
-                  elevation: theme.cardTheme.elevation,
-                  shape: theme.cardTheme.shape,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      movie.plot.isEmpty ? 'No plot available.' : movie.plot,
-                      style: theme.textTheme.bodyLarge, // Body text style
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
 }

@@ -1,51 +1,35 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+//api_service.dart
+
+import 'package:dio/dio.dart';
 import '../../core/app_constants.dart';
 import '../model/movie.dart';
+import '../model/search_response.dart';
+import 'api_client.dart';
 
-// Purpose: Manages API calls to OMDB for searching movies and fetching details.
 class ApiService {
-  static const String _baseUrl = 'http://www.omdbapi.com/';
+  final ApiClient _client;
 
-  // Searches movies by query and page
-  Future<List<Movie>> searchMovies(String query, int page) async {
+  ApiService() : _client = ApiClient(Dio());
+
+  Future<SearchResponse> searchMovies(String query, int page) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl?s=$query&page=$page&apikey=${AppConstants.omdbApiKey}'),
-      );
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['Response'] == 'True') {
-          return (json['Search'] as List)
-              .map((item) => Movie.fromJson(item))
-              .toList();
-        } else {
-          throw Exception(json['Error']);
-        }
-      } else {
-        throw Exception('Failed to search movies: ${response.statusCode}');
-      }
+      print('Searching: http://www.omdbapi.com/?s=$query&page=$page&apikey=${AppConstants.omdbApiKey}');
+      final response = await _client.searchMovies(query, page, AppConstants.omdbApiKey);
+      return response;
     } catch (e) {
       throw Exception('Failed to search movies: $e');
     }
   }
 
-  // Fetches movie details by IMDb ID
-  Future<Movie> fetchMovieDetails(String imdbId) async {
+  Future<SearchResponse> fetchMovies(int page) async {
+    return await searchMovies('movie', page);
+  }
+
+  Future<Movie> getMovieDetails(String imdbId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl?i=$imdbId&apikey=${AppConstants.omdbApiKey}'),
-      );
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['Response'] == 'True') {
-          return Movie.fromJson(json);
-        } else {
-          throw Exception(json['Error']);
-        }
-      } else {
-        throw Exception('Failed to fetch details: ${response.statusCode}');
-      }
+      print('Fetching details: http://www.omdbapi.com/?i=$imdbId&plot=full&apikey=${AppConstants.omdbApiKey}');
+      final response = await _client.getMovieDetails(imdbId, 'full', AppConstants.omdbApiKey);
+      return response;
     } catch (e) {
       throw Exception('Failed to fetch movie details: $e');
     }
